@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
+	"gonet/base"
 )
 
 func main() {
-	var str = "aa"
-	fmt.Println(&str)
-	hello(&str)
-}
+	fmt.Println("hello world")
 
-func hello(str *string) {
-	fmt.Println(&*str)
+	//base.VarTest()
+	//base.NilTest()
+	//base.ConstTest()
+	//base.IfTest()
+	//base.ForTest()
+	//fmt.Println(base.Max(1, 2))
+	base.RoutinesTest()
 }

@@ -25,10 +25,10 @@ type Session struct {
 	sid uint64
 	uid uint64
 
-	rawConn   net.Conn
-	sendCh    chan []byte
-	messageCh chan any
-	done      chan error
+	conn        net.Conn
+	sendChan    chan []byte
+	messageChan chan any
+	doneChan    chan error
 }
 
 var uuid uint64
@@ -38,13 +38,12 @@ func NewSession(conn net.Conn) *Session {
 	var suuid = atomic.AddUint64(&uuid, 1)
 
 	session := &Session{
-		sid: suuid,
-		uid: 0, // 可以为用户的id
-
-		rawConn:   conn,
-		sendCh:    make(chan []byte, 100),
-		done:      make(chan error),
-		messageCh: make(chan any, 100),
+		sid:         suuid,
+		uid:         0, // 可以为用户的id
+		conn:        conn,
+		sendChan:    make(chan []byte, 100),
+		doneChan:    make(chan error),
+		messageChan: make(chan any, 100),
 	}
 
 	return session
@@ -52,13 +51,13 @@ func NewSession(conn net.Conn) *Session {
 
 // Close close connection
 func (session *Session) Close() {
-	session.rawConn.Close()
+	session.conn.Close()
 }
 
 // SendMessage send message
 func (session *Session) SendMessage(msg any) error {
 	var buffer = Encode(msg)
-	session.sendCh <- buffer.ToBytes()
+	session.sendChan <- buffer.ToBytes()
 	return nil
 }
 
@@ -68,15 +67,13 @@ func (session *Session) writeCoroutine(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-
-		case pkt := <-session.sendCh:
-
-			if pkt == nil {
+		case packet := <-session.sendChan:
+			if packet == nil {
 				continue
 			}
 
-			if _, err := session.rawConn.Write(pkt); err != nil {
-				session.done <- err
+			if _, err := session.conn.Write(packet); err != nil {
+				session.doneChan <- err
 			}
 		}
 	}
@@ -92,33 +89,33 @@ func (session *Session) readCoroutine(ctx context.Context) {
 
 		default:
 			// 读取长度
-			buf := make([]byte, 4)
-			_, err := io.ReadFull(session.rawConn, buf)
+			var bufferHeader = make([]byte, 4)
+			_, err := io.ReadFull(session.conn, bufferHeader)
 			if err != nil {
-				session.done <- err
+				session.doneChan <- err
 				continue
 			}
 
-			bufReader := bytes.NewReader(buf)
+			reader := bytes.NewReader(bufferHeader)
 
-			var dataSize int32
-			err = binary.Read(bufReader, binary.BigEndian, &dataSize)
+			var length int32
+			err = binary.Read(reader, binary.BigEndian, &length)
 			if err != nil {
-				session.done <- err
+				session.doneChan <- err
 				continue
 			}
 
 			// 读取数据
-			var bytes = make([]byte, dataSize)
-			_, err = io.ReadFull(session.rawConn, bytes)
+			var bufferBody = make([]byte, length)
+			_, err = io.ReadFull(session.conn, bufferBody)
 			if err != nil {
-				session.done <- err
+				session.doneChan <- err
 				continue
 			}
 
 			// 解码
-			var packet = Decode(bytes)
-			session.messageCh <- packet
+			var packet = Decode(bufferBody)
+			session.messageChan <- packet
 		}
 	}
 }

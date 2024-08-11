@@ -22,12 +22,12 @@ import (
 func TestServer(t *testing.T) {
 	var host = "127.0.0.1:9000"
 
-	var server = NewServer(host)
-	server.onMessage = HandleMessage
-	server.onConnect = HandleConnect
-	server.onDisconnect = HandleDisconnect
+	var tcpServer = NewTcpServer(host)
+	tcpServer.onMessage = HandleMessage
+	tcpServer.onConnect = HandleConnect
+	tcpServer.onDisconnect = HandleDisconnect
 
-	server.Start()
+	tcpServer.Start()
 }
 
 func TestClient(t *testing.T) {
