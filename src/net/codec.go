@@ -13,53 +13,25 @@
 package net
 
 import (
-	"bytes"
-	"encoding/binary"
+	protocol "gonet/zfoogo"
 )
 
-// Encode from Message to []byte
-func Encode(msg *Message) ([]byte, error) {
-	buffer := new(bytes.Buffer)
-
-	err := binary.Write(buffer, binary.LittleEndian, msg.msgSize)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buffer, binary.LittleEndian, msg.msgID)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(buffer, binary.LittleEndian, msg.data)
-	if err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
+// Encode from Packet to []byte
+func Encode(packet any) *protocol.ByteBuffer {
+	var buffer = new(protocol.ByteBuffer)
+	buffer.WriteRawInt32(0)
+	protocol.Write(buffer, packet)
+	var writeOffset = buffer.GetWriteOffset()
+	buffer.SetWriteOffset(0)
+	buffer.WriteRawInt32(int32(writeOffset - 4))
+	buffer.SetWriteOffset(writeOffset)
+	return buffer
 }
 
-// Decode from []byte to Message
-func Decode(data []byte) (*Message, error) {
-	bufReader := bytes.NewReader(data)
-
-	dataSize := len(data)
-	// 读取消息ID
-	var msgID int32
-	err := binary.Read(bufReader, binary.LittleEndian, &msgID)
-	if err != nil {
-		return nil, err
-	}
-
-	// 读取数据
-	dataBufLength := dataSize - 4 - 4
-	dataBuf := make([]byte, dataBufLength)
-	err = binary.Read(bufReader, binary.LittleEndian, &dataBuf)
-	if err != nil {
-		return nil, err
-	}
-
-	message := &Message{}
-	message.msgSize = int32(dataSize)
-	message.msgID = msgID
-	message.data = dataBuf
-
-	return message, nil
+// Decode from []byte to Packet
+func Decode(data []byte) any {
+	var buffer = new(protocol.ByteBuffer)
+	buffer.WriteUBytes(data)
+	var packet = protocol.Read(buffer)
+	return packet
 }

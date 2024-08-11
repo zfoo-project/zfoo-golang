@@ -11,63 +11,111 @@
  */
 package net
 
+import (
+	"bytes"
+	"context"
+	"encoding/binary"
+	"io"
+	"net"
+	"sync/atomic"
+)
+
 // Session struct
 type Session struct {
-	sID      string
-	uID      string
-	conn     *Conn
-	settings map[string]interface{}
+	sid uint64
+	uid uint64
+
+	conn        net.Conn
+	sendChan    chan []byte
+	messageChan chan any
+	doneChan    chan error
 }
 
+var uuid uint64
+
 // NewSession create a new session
-func NewSession(conn *Conn) *Session {
-	id := TimeUUID()
+func NewSession(conn net.Conn) *Session {
+	var suuid = atomic.AddUint64(&uuid, 1)
+
 	session := &Session{
-		sID:      id.String(),
-		uID:      "",
-		conn:     conn,
-		settings: make(map[string]interface{}),
+		sid:         suuid,
+		uid:         0, // 可以为用户的id
+		conn:        conn,
+		sendChan:    make(chan []byte, 100),
+		doneChan:    make(chan error),
+		messageChan: make(chan any, 100),
 	}
 
 	return session
 }
 
-// GetSessionID get session ID
-func (s *Session) GetSessionID() string {
-	return s.sID
+// Close close connection
+func (session *Session) Close() {
+	session.conn.Close()
 }
 
-// BindUserID bind a user ID to session
-func (s *Session) BindUserID(uid string) {
-	s.uID = uid
-}
-
-// GetUserID get user ID
-func (s *Session) GetUserID() string {
-	return s.uID
-}
-
-// GetConn get zero.Conn pointer
-func (s *Session) GetConn() *Conn {
-	return s.conn
-}
-
-// SetConn set a zero.Conn to session
-func (s *Session) SetConn(conn *Conn) {
-	s.conn = conn
-}
-
-// GetSetting get setting
-func (s *Session) GetSetting(key string) interface{} {
-
-	if v, ok := s.settings[key]; ok {
-		return v
-	}
-
+// SendMessage send message
+func (session *Session) SendMessage(msg any) error {
+	var buffer = Encode(msg)
+	session.sendChan <- buffer.ToBytes()
 	return nil
 }
 
-// SetSetting set setting
-func (s *Session) SetSetting(key string, value interface{}) {
-	s.settings[key] = value
+// writeCoroutine write coroutine
+func (session *Session) writeCoroutine(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case packet := <-session.sendChan:
+			if packet == nil {
+				continue
+			}
+
+			if _, err := session.conn.Write(packet); err != nil {
+				session.doneChan <- err
+			}
+		}
+	}
+}
+
+// readCoroutine read coroutine
+func (session *Session) readCoroutine(ctx context.Context) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			// 读取长度
+			var bufferHeader = make([]byte, 4)
+			_, err := io.ReadFull(session.conn, bufferHeader)
+			if err != nil {
+				session.doneChan <- err
+				continue
+			}
+
+			reader := bytes.NewReader(bufferHeader)
+
+			var length int32
+			err = binary.Read(reader, binary.BigEndian, &length)
+			if err != nil {
+				session.doneChan <- err
+				continue
+			}
+
+			// 读取数据
+			var bufferBody = make([]byte, length)
+			_, err = io.ReadFull(session.conn, bufferBody)
+			if err != nil {
+				session.doneChan <- err
+				continue
+			}
+
+			// 解码
+			var packet = Decode(bufferBody)
+			session.messageChan <- packet
+		}
+	}
 }
