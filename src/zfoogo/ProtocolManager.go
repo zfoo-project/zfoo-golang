@@ -1,11 +1,13 @@
-package protocol
+package zfoogo
 
 func init() {
+	Protocols[0] = new(SignalAttachment)
 	Protocols[100] = new(Message)
 	Protocols[101] = new(Error)
 	Protocols[102] = new(Heartbeat)
 	Protocols[103] = new(Ping)
 	Protocols[104] = new(Pong)
+	Protocols[110] = new(PairIntLong)
 	Protocols[111] = new(PairLong)
 	Protocols[112] = new(PairString)
 	Protocols[113] = new(PairLS)
@@ -16,10 +18,14 @@ func init() {
 	Protocols[1201] = new(UdpHelloResponse)
 	Protocols[1300] = new(TcpHelloRequest)
 	Protocols[1301] = new(TcpHelloResponse)
-	Protocols[1500] = new(JProtobufHelloRequest)
-	Protocols[1501] = new(JProtobufHelloResponse)
+	Protocols[1400] = new(WebsocketHelloRequest)
+	Protocols[1401] = new(WebsocketHelloResponse)
 	Protocols[1600] = new(JsonHelloRequest)
 	Protocols[1601] = new(JsonHelloResponse)
+	Protocols[1700] = new(HttpHelloRequest)
+	Protocols[1701] = new(HttpHelloResponse)
+	Protocols[2071] = new(WebSocketObjectA)
+	Protocols[2072] = new(WebSocketObjectB)
 	Protocols[5000] = new(GatewayToProviderRequest)
 	Protocols[5001] = new(GatewayToProviderResponse)
 }

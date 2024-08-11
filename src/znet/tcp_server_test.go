@@ -13,7 +13,7 @@ package znet
 
 import (
 	"fmt"
-	protocol "gonet/goProtocol"
+	protocol "gonet/zfoogo"
 	"net"
 	"testing"
 	"time"

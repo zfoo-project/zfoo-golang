@@ -13,7 +13,7 @@
 package znet
 
 import (
-	protocol "gonet/goProtocol"
+	protocol "gonet/zfoogo"
 )
 
 // Encode from Packet to []byte
@@ -21,7 +21,7 @@ func Encode(packet any) *protocol.ByteBuffer {
 	var buffer = new(protocol.ByteBuffer)
 	buffer.WriteRawInt32(0)
 	protocol.Write(buffer, packet)
-	var writeOffset = buffer.WriteOffset()
+	var writeOffset = buffer.GetWriteOffset()
 	buffer.SetWriteOffset(0)
 	buffer.WriteRawInt32(int32(writeOffset - 4))
 	buffer.SetWriteOffset(writeOffset)

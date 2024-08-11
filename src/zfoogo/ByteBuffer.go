@@ -1,4 +1,4 @@
-package protocol
+package zfoogo
 
 import (
 	"bytes"
@@ -13,42 +13,80 @@ const maxSize int = 655537
 var initArray []byte = make([]byte, initSize, initSize)
 
 type ByteBuffer struct {
-	buffer     []byte
-	writeIndex int
-	readIndex  int
+	buffer      []byte
+	writeOffset int
+	readOffset  int
+}
+
+func (byteBuffer *ByteBuffer) AdjustPadding(predictionLength int, beforeWriteIndex int) {
+	// 因为写入的是可变长的int，如果预留的位置过多，则清除多余的位置
+	var currentWriteIndex = byteBuffer.GetWriteOffset()
+	var predictionCount = byteBuffer.WriteIntCount(int32(predictionLength))
+	var length = currentWriteIndex - beforeWriteIndex - predictionCount
+	var lengthCount = byteBuffer.WriteIntCount(int32(length))
+	var padding = lengthCount - predictionCount
+	if padding == 0 {
+		byteBuffer.SetWriteOffset(beforeWriteIndex)
+		byteBuffer.WriteInt(length)
+		byteBuffer.SetWriteOffset(currentWriteIndex)
+	} else if padding < 0 {
+		var byteArray = byteBuffer.buffer[(currentWriteIndex - length):currentWriteIndex]
+		byteBuffer.SetWriteOffset(beforeWriteIndex)
+		byteBuffer.WriteInt(length)
+		byteBuffer.WriteUBytes(byteArray)
+	} else {
+		var byteArray = byteBuffer.buffer[(currentWriteIndex - length):currentWriteIndex]
+		var copyBytes = make([]byte, length)
+		copy(copyBytes, byteArray)
+		byteBuffer.SetWriteOffset(beforeWriteIndex)
+		byteBuffer.WriteInt(length)
+		byteBuffer.WriteUBytes(copyBytes)
+	}
+}
+
+func (byteBuffer *ByteBuffer) CompatibleRead(beforeReadIndex int, length int) bool {
+	return length != -1 && byteBuffer.readOffset < length+beforeReadIndex
 }
 
 // -------------------------------------------------get/set-------------------------------------------------
-func (byteBuffer *ByteBuffer) WriteOffset() int {
-	return byteBuffer.writeIndex
+func (byteBuffer *ByteBuffer) GetBuffer() []byte {
+	return byteBuffer.buffer
+}
+
+func (byteBuffer *ByteBuffer) GetWriteOffset() int {
+	return byteBuffer.writeOffset
 }
 
 func (byteBuffer *ByteBuffer) SetWriteOffset(writeIndex int) {
 	if writeIndex > len(byteBuffer.buffer) {
-		var error = fmt.Sprintf("writeIndex:[{%d}] out of bounds exception: readerIndex:[{%d}] , writerIndex:[{%d}] (expected: 0 <= readerIndex <= writerIndex <= capacity:[{%d}])", writeIndex, byteBuffer.readIndex, byteBuffer.writeIndex, len(byteBuffer.buffer))
+		var error = fmt.Sprintf("writeIndex:[{%d}] out of bounds exception: readOffset:[{%d}] , writeOffset:[{%d}] (expected: 0 <= readOffset <= writeOffset <= capacity:[{%d}])", writeIndex, byteBuffer.readOffset, byteBuffer.writeOffset, len(byteBuffer.buffer))
 		panic(error)
 	}
-	byteBuffer.writeIndex = writeIndex
+	byteBuffer.writeOffset = writeIndex
+}
+
+func (byteBuffer *ByteBuffer) GetReadOffset() int {
+	return byteBuffer.readOffset
 }
 
 func (byteBuffer *ByteBuffer) SetReadOffset(readIndex int) {
-	if readIndex > byteBuffer.writeIndex {
-		var error = fmt.Sprintf("readIndex:[{%d}] out of bounds exception: readerIndex:[{%d}] , writerIndex:[{%d}] (expected: 0 <= readerIndex <= writerIndex <= capacity:[{%d}])", readIndex, byteBuffer.readIndex, byteBuffer.writeIndex, len(byteBuffer.buffer))
+	if readIndex > byteBuffer.writeOffset {
+		var error = fmt.Sprintf("readIndex:[{%d}] out of bounds exception: readOffset:[{%d}] , writeOffset:[{%d}] (expected: 0 <= readOffset <= writeOffset <= capacity:[{%d}])", readIndex, byteBuffer.readOffset, byteBuffer.writeOffset, len(byteBuffer.buffer))
 		panic(error)
 	}
-	byteBuffer.readIndex = readIndex
+	byteBuffer.readOffset = readIndex
 }
 
 func (byteBuffer *ByteBuffer) ToBytes() []byte {
-	return byteBuffer.buffer[0:byteBuffer.writeIndex]
+	return byteBuffer.buffer[0:byteBuffer.writeOffset]
 }
 
 func (byteBuffer *ByteBuffer) ToString() string {
-	return fmt.Sprintf("writeIndex:[{%d}], readIndex:[{%d}], len:[{%d}], cap:[{%d}]", byteBuffer.writeIndex, byteBuffer.readIndex, len(byteBuffer.buffer), cap(byteBuffer.buffer))
+	return fmt.Sprintf("writeOffset:[{%d}], readOffset:[{%d}], len:[{%d}], cap:[{%d}]", byteBuffer.writeOffset, byteBuffer.readOffset, len(byteBuffer.buffer), cap(byteBuffer.buffer))
 }
 
 func (byteBuffer *ByteBuffer) GetCapacity() int {
-	return len(byteBuffer.buffer) - byteBuffer.writeIndex
+	return len(byteBuffer.buffer) - byteBuffer.writeOffset
 }
 
 func (byteBuffer *ByteBuffer) EnsureCapacity(capacity int) {
@@ -66,12 +104,12 @@ func (byteBuffer *ByteBuffer) EnsureCapacity(capacity int) {
 }
 
 func (byteBuffer *ByteBuffer) Clear() {
-	byteBuffer.writeIndex = 0
-	byteBuffer.readIndex = 0
+	byteBuffer.writeOffset = 0
+	byteBuffer.readOffset = 0
 }
 
 func (byteBuffer *ByteBuffer) IsReadable() bool {
-	return byteBuffer.writeIndex > byteBuffer.readIndex
+	return byteBuffer.writeOffset > byteBuffer.readOffset
 }
 
 // -------------------------------------------------write/read-------------------------------------------------
@@ -95,55 +133,55 @@ func BytesToInt(b []byte) int {
 func (byteBuffer *ByteBuffer) WriteBool(value bool) {
 	byteBuffer.EnsureCapacity(1)
 	if value {
-		byteBuffer.buffer[byteBuffer.writeIndex] = 1
+		byteBuffer.buffer[byteBuffer.writeOffset] = 1
 	} else {
-		byteBuffer.buffer[byteBuffer.writeIndex] = 0
+		byteBuffer.buffer[byteBuffer.writeOffset] = 0
 	}
-	byteBuffer.writeIndex++
+	byteBuffer.writeOffset++
 }
 
 func (byteBuffer *ByteBuffer) ReadBool() bool {
-	var byteValue = byteBuffer.buffer[byteBuffer.readIndex]
-	byteBuffer.readIndex++
+	var byteValue = byteBuffer.buffer[byteBuffer.readOffset]
+	byteBuffer.readOffset++
 	return byteValue == 1
 }
 
 func (byteBuffer *ByteBuffer) WriteByte(value int8) {
 	byteBuffer.EnsureCapacity(1)
-	byteBuffer.buffer[byteBuffer.writeIndex] = byte(value)
-	byteBuffer.writeIndex++
+	byteBuffer.buffer[byteBuffer.writeOffset] = byte(value)
+	byteBuffer.writeOffset++
 }
 
 func (byteBuffer *ByteBuffer) ReadByte() int8 {
-	var byteValue = byteBuffer.buffer[byteBuffer.readIndex]
-	byteBuffer.readIndex++
+	var byteValue = byteBuffer.buffer[byteBuffer.readOffset]
+	byteBuffer.readOffset++
 	return int8(byteValue)
 }
 
 func (byteBuffer *ByteBuffer) WriteUByte(value byte) {
 	byteBuffer.EnsureCapacity(1)
-	byteBuffer.buffer[byteBuffer.writeIndex] = value
-	byteBuffer.writeIndex++
+	byteBuffer.buffer[byteBuffer.writeOffset] = value
+	byteBuffer.writeOffset++
 }
 
 func (byteBuffer *ByteBuffer) ReadUByte() byte {
-	var byteValue = byteBuffer.buffer[byteBuffer.readIndex]
-	byteBuffer.readIndex++
+	var byteValue = byteBuffer.buffer[byteBuffer.readOffset]
+	byteBuffer.readOffset++
 	return byteValue
 }
 
 func (byteBuffer *ByteBuffer) WriteUBytes(bytes []byte) {
 	var length = len(bytes)
 	byteBuffer.EnsureCapacity(length)
-	copy(byteBuffer.buffer[byteBuffer.writeIndex:], bytes)
-	byteBuffer.writeIndex += length
+	copy(byteBuffer.buffer[byteBuffer.writeOffset:], bytes)
+	byteBuffer.writeOffset += length
 }
 
 func (byteBuffer *ByteBuffer) ReadUBytes(length int) []byte {
-	var readOffset = byteBuffer.readIndex
-	var endOffset = byteBuffer.readIndex + length
+	var readOffset = byteBuffer.readOffset
+	var endOffset = byteBuffer.readOffset + length
 	var bytes = byteBuffer.buffer[readOffset:endOffset]
-	byteBuffer.readIndex += length
+	byteBuffer.readOffset += length
 	return bytes
 }
 
@@ -163,12 +201,11 @@ func (byteBuffer *ByteBuffer) ReadShort() int16 {
 	return value
 }
 
-func (byteBuffer *ByteBuffer) WriteRawInt32(value int32) {
-	byteBuffer.EnsureCapacity(4)
-	var bytesBuffer = bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, value)
-	var byteArray = bytesBuffer.Bytes()
-	byteBuffer.WriteUBytes(byteArray)
+func (byteBuffer *ByteBuffer) WriteRawInt32(intValue int32) {
+	byteBuffer.WriteUByte(byte(intValue >> 24))
+	byteBuffer.WriteUByte(byte(intValue >> 16))
+	byteBuffer.WriteUByte(byte(intValue >> 8))
+	byteBuffer.WriteUByte(byte(intValue))
 }
 
 func (byteBuffer *ByteBuffer) ReadRawInt32() int32 {
@@ -188,6 +225,24 @@ func (byteBuffer *ByteBuffer) WriteInt(intValue int) {
 
 func (byteBuffer *ByteBuffer) ReadInt() int {
 	return int(byteBuffer.ReadInt32())
+}
+
+func (byteBuffer *ByteBuffer) WriteIntCount(intValue int32) int {
+	var value uint32 = uint32(((intValue << 1) ^ (intValue >> 31)))
+	// 右移操作>>是带符号右移
+	if value>>7 == 0 {
+		return 1
+	}
+	if value>>14 == 0 {
+		return 2
+	}
+	if value>>21 == 0 {
+		return 3
+	}
+	if value>>28 == 0 {
+		return 4
+	}
+	return 5
 }
 
 func (byteBuffer *ByteBuffer) WriteInt32(intValue int32) {
@@ -431,12 +486,6 @@ func (byteBuffer *ByteBuffer) ReadChar() string {
 	return byteBuffer.ReadString()
 }
 
-func (byteBuffer *ByteBuffer) WritePacketFlag(packet any) bool {
-	var flag = packet == nil
-	byteBuffer.WriteBool(!flag)
-	return flag
-}
-
 func (byteBuffer *ByteBuffer) WritePacket(packet any, protocolId int16) {
 	var protocolRegistration = GetProtocol(protocolId)
 	protocolRegistration.write(byteBuffer, packet)
@@ -476,7 +525,7 @@ func Read(buffer *ByteBuffer) any {
 }
 
 // -------------------------------------------------CutDown-------------------------------------------------
-func (byteBuffer *ByteBuffer) WriteBooleanArray(array []bool) {
+func (byteBuffer *ByteBuffer) WriteBoolArray(array []bool) {
 	if array == nil {
 		byteBuffer.WriteInt(0)
 	} else {
@@ -487,7 +536,7 @@ func (byteBuffer *ByteBuffer) WriteBooleanArray(array []bool) {
 	}
 }
 
-func (byteBuffer *ByteBuffer) ReadBooleanArray() []bool {
+func (byteBuffer *ByteBuffer) ReadBoolArray() []bool {
 	var size = byteBuffer.ReadInt()
 	var array = make([]bool, size)
 	if size > 0 {
