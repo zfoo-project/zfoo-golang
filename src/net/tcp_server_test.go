@@ -23,7 +23,7 @@ func TestServer(t *testing.T) {
 	var host = "127.0.0.1:9000"
 
 	var tcpServer = NewTcpServer(host)
-	tcpServer.onReceiver = HandleMessage
+	tcpServer.onReceiver = HandlePacketReceiver
 	tcpServer.onConnect = HandleConnect
 	tcpServer.onDisconnect = HandleDisconnect
 
@@ -47,11 +47,11 @@ func TestClient(t *testing.T) {
 	time.Sleep(time.Millisecond * 5000)
 }
 
-func HandleMessage(session *Session, packet any) {
+func HandlePacketReceiver(session *Session, packet any) {
 	fmt.Println("receive packet")
 	fmt.Println(packet)
 
-	session.SendMessage(packet)
+	session.Send(packet)
 }
 
 func HandleDisconnect(session *Session, err error) {
