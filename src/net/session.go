@@ -55,8 +55,8 @@ func (session *Session) Close() {
 }
 
 // SendMessage send message
-func (session *Session) SendMessage(msg any) error {
-	var buffer = Encode(msg)
+func (session *Session) SendMessage(packet any) error {
+	var buffer = Encode(packet)
 	session.sendChan <- buffer.ToBytes()
 	return nil
 }

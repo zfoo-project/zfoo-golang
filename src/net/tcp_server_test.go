@@ -23,7 +23,7 @@ func TestServer(t *testing.T) {
 	var host = "127.0.0.1:9000"
 
 	var tcpServer = NewTcpServer(host)
-	tcpServer.onMessage = HandleMessage
+	tcpServer.onReceiver = HandleMessage
 	tcpServer.onConnect = HandleConnect
 	tcpServer.onDisconnect = HandleDisconnect
 

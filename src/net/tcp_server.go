@@ -8,7 +8,7 @@ import (
 
 // TcpServer struct
 type TcpServer struct {
-	onMessage    func(*Session, any)
+	onReceiver   func(*Session, any)
 	onConnect    func(*Session)
 	onDisconnect func(*Session, error)
 	sessions     *sync.Map
@@ -69,8 +69,8 @@ func (server *TcpServer) connectHandler(ctx context.Context, session *Session) {
 			}
 			return
 		case packet := <-session.messageChan:
-			if server.onMessage != nil {
-				server.onMessage(session, packet)
+			if server.onReceiver != nil {
+				server.onReceiver(session, packet)
 			}
 		}
 	}
