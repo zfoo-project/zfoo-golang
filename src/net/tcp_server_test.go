@@ -13,10 +13,10 @@ package net
 
 import (
 	"fmt"
-	protocol "gonet/zfoogo"
 	"net"
 	"testing"
 	"time"
+	protocol "zfoo/zfoogo"
 )
 
 func TestServer(t *testing.T) {

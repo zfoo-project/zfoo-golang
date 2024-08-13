@@ -13,7 +13,7 @@
 package net
 
 import (
-	protocol "gonet/zfoogo"
+	protocol "zfoo/zfoogo"
 )
 
 // Encode from Packet to []byte
