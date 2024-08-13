@@ -1,10 +1,9 @@
 package zfoogo
 
-
 type TripleLSS struct {
-	Left int64
+	Left   int64
 	Middle string
-	Right string
+	Right  string
 }
 
 func (protocol TripleLSS) ProtocolId() int16 {
@@ -13,7 +12,7 @@ func (protocol TripleLSS) ProtocolId() int16 {
 
 func (protocol TripleLSS) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*TripleLSS)
@@ -37,7 +36,7 @@ func (protocol TripleLSS) read(buffer *ByteBuffer) any {
 	var result2 = buffer.ReadString()
 	packet.Right = result2
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

@@ -1,8 +1,7 @@
 package zfoogo
 
-
 type Message struct {
-	Code int
+	Code    int
 	Message string
 }
 
@@ -12,7 +11,7 @@ func (protocol Message) ProtocolId() int16 {
 
 func (protocol Message) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*Message)
@@ -33,7 +32,7 @@ func (protocol Message) read(buffer *ByteBuffer) any {
 	var result1 = buffer.ReadString()
 	packet.Message = result1
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

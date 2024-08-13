@@ -1,8 +1,7 @@
 package zfoogo
 
-
 type PairLong struct {
-	Key int64
+	Key   int64
 	Value int64
 }
 
@@ -12,7 +11,7 @@ func (protocol PairLong) ProtocolId() int16 {
 
 func (protocol PairLong) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*PairLong)
@@ -33,7 +32,7 @@ func (protocol PairLong) read(buffer *ByteBuffer) any {
 	var result1 = buffer.ReadLong()
 	packet.Value = result1
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

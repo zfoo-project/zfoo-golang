@@ -1,10 +1,9 @@
 package zfoogo
 
-
 type TripleString struct {
-	Left string
+	Left   string
 	Middle string
-	Right string
+	Right  string
 }
 
 func (protocol TripleString) ProtocolId() int16 {
@@ -13,7 +12,7 @@ func (protocol TripleString) ProtocolId() int16 {
 
 func (protocol TripleString) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*TripleString)
@@ -37,7 +36,7 @@ func (protocol TripleString) read(buffer *ByteBuffer) any {
 	var result2 = buffer.ReadString()
 	packet.Right = result2
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

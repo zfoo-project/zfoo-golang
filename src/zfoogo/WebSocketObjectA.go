@@ -1,8 +1,7 @@
 package zfoogo
 
-
 type WebSocketObjectA struct {
-	A int
+	A       int
 	ObjectB WebSocketObjectB
 }
 
@@ -12,7 +11,7 @@ func (protocol WebSocketObjectA) ProtocolId() int16 {
 
 func (protocol WebSocketObjectA) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*WebSocketObjectA)
@@ -33,7 +32,7 @@ func (protocol WebSocketObjectA) read(buffer *ByteBuffer) any {
 	var result1 = *buffer.ReadPacket(2072).(*WebSocketObjectB)
 	packet.ObjectB = result1
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

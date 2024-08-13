@@ -1,6 +1,5 @@
 package zfoogo
 
-
 type WebSocketObjectB struct {
 	Flag bool
 }
@@ -11,7 +10,7 @@ func (protocol WebSocketObjectB) ProtocolId() int16 {
 
 func (protocol WebSocketObjectB) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*WebSocketObjectB)
@@ -29,7 +28,7 @@ func (protocol WebSocketObjectB) read(buffer *ByteBuffer) any {
 	var result0 = buffer.ReadBool()
 	packet.Flag = result0
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

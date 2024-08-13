@@ -1,6 +1,5 @@
 package zfoogo
 
-
 type Pong struct {
 	Time int64
 }
@@ -11,7 +10,7 @@ func (protocol Pong) ProtocolId() int16 {
 
 func (protocol Pong) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*Pong)
@@ -29,7 +28,7 @@ func (protocol Pong) read(buffer *ByteBuffer) any {
 	var result0 = buffer.ReadLong()
 	packet.Time = result0
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

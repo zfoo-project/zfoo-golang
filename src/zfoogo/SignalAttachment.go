@@ -1,11 +1,10 @@
 package zfoogo
 
-
 type SignalAttachment struct {
-	SignalId int
+	SignalId         int
 	TaskExecutorHash int
 	// 0 for the server, 1 or 2 for the sync or async native client, 12 for the outside client such as browser, mobile
-	Client int8
+	Client    int8
 	Timestamp int64
 }
 
@@ -15,7 +14,7 @@ func (protocol SignalAttachment) ProtocolId() int16 {
 
 func (protocol SignalAttachment) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*SignalAttachment)
@@ -42,7 +41,7 @@ func (protocol SignalAttachment) read(buffer *ByteBuffer) any {
 	var result3 = buffer.ReadLong()
 	packet.Timestamp = result3
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

@@ -1,6 +1,5 @@
 package zfoogo
 
-
 type JsonHelloResponse struct {
 	Message string
 }
@@ -11,7 +10,7 @@ func (protocol JsonHelloResponse) ProtocolId() int16 {
 
 func (protocol JsonHelloResponse) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*JsonHelloResponse)
@@ -29,7 +28,7 @@ func (protocol JsonHelloResponse) read(buffer *ByteBuffer) any {
 	var result0 = buffer.ReadString()
 	packet.Message = result0
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }

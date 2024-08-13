@@ -1,8 +1,7 @@
 package zfoogo
 
-
 type Error struct {
-	Code int
+	Code    int
 	Message string
 }
 
@@ -12,7 +11,7 @@ func (protocol Error) ProtocolId() int16 {
 
 func (protocol Error) write(buffer *ByteBuffer, packet any) {
 	if packet == nil {
-	    buffer.WriteInt(0)
+		buffer.WriteInt(0)
 		return
 	}
 	var message = packet.(*Error)
@@ -33,7 +32,7 @@ func (protocol Error) read(buffer *ByteBuffer) any {
 	var result1 = buffer.ReadString()
 	packet.Message = result1
 	if length > 0 {
-        buffer.SetReadOffset(beforeReadIndex + length)
-    }
+		buffer.SetReadOffset(beforeReadIndex + length)
+	}
 	return packet
 }
